@@ -94,19 +94,7 @@
                             </div>
                             <div class="text-muted mb-3">{{ total_reviews }} reviews</div>
 
-                            
-                        </div>
-                    </div>
 
-                    <div class="card">
-                        <div class="card-body text-center">
-                            <h5 class="card-title fw-bold mb-3">Quick Actions</h5>
-                            <a href="#reviews" class="btn btn-danger w-100 mb-2" onclick="switchToReviews()">View All
-                                Reviews</a>
-                            {% if request.session.user_id and not user_review %}
-                            <a href="#add-review-form" class="btn btn-outline-primary w-100"
-                                onclick="switchToReviews()">Write a Review</a>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -115,96 +103,199 @@
 
         <!-- Reviews Tab -->
         <div class="tab-pane fade" id="reviews" role="tabpanel" aria-labelledby="reviews-tab">
-
-            <!-- Reviews List -->
-            <div class="mb-4">
+            <div id="reviews-section" data-restaurant-id="{{ restaurant.id }}">
+                <!-- Reviews List -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h4 class="fw-bold mb-0">Reviews</h4>
-                    <form method="get" class="d-inline-block">
-                        <select name="sort" class="form-select form-select-sm" style="width:auto;display:inline-block;">
-                            <option value="newest">Sort by</option>
-                        </select>
-                    </form>
                 </div>
-                {% for review in reviews %}
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="rounded-circle bg-secondary d-inline-block me-3"
-                                style="width:40px;height:40px;"></div>
-                            <div>
-                                <span class="fw-semibold">{{ review.user.name }}</span>
-                                <span class="text-muted small ms-2">{{ review.created_at|timesince }} ago</span>
+                <div class="mb-4">
+                    {% for review in reviews %}
+                    <div class="card mb-3" data-review-id="{{ review.id }}">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="rounded-circle bg-secondary d-inline-block me-3"
+                                    style="width:40px;height:40px;"></div>
                                 <div>
-                                    {% for i in "12345" %}
-                                    {% if forloop.counter <= review.rating %}<span class="text-danger">&#9733;</span>
-                                        {% else %}<span class="text-secondary">&#9733;</span> {% endif %}
-                                        {% endfor %}
+                                    <span class="fw-semibold">{{ review.user.first_name }} {{ review.user.last_name}}</span>
+                                    <span class="text-muted small ms-2">{{ review.created_at|timesince }} ago</span>
+                                    <div>
+                                        {% for i in "12345" %}
+                                        {% if forloop.counter <= review.rating %}<span class="text-danger">
+                                            &#9733;</span>
+                                            {% else %}<span class="text-secondary">&#9733;</span> {% endif %}
+                                            {% endfor %}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <p class="mb-1">{{ review.comment }}</p>
-                        <div class="d-flex align-items-center gap-3 mt-2">
-                            <span class="text-muted small"><i class="bi bi-hand-thumbs-up"></i> 0</span>
-                            <span class="text-muted small"><i class="bi bi-chat"></i> 0</span>
-                            {% if user_review and review.id == user_review.id %}
-                            <a href="{% url 'restaurant_reviews:edit_review' review.id %}"
-                                class="btn btn-sm btn-outline-primary">Edit</a>
-                            <a href="{% url 'restaurant_reviews:delete_review_user' review.id %}"
-                                class="btn btn-sm btn-outline-danger ms-2"
-                                onclick="return confirm('Delete your review?');">Delete</a>
-                            {% endif %}
+                            <p class="mb-1">{{ review.comment }}</p>
+                            <div class="d-flex align-items-center gap-3 mt-2">
+
+                                {% if user_review and review.id == user_review.id %}
+                                <a href="{% url 'restaurant_reviews:edit_review' review.id %}"
+                                    class="btn btn-sm btn-outline-primary">Edit</a>
+                                <form method="post" class="d-inline delete-review-form" data-review-id="{{ review.id }}"
+                                    action="{% url 'restaurant_reviews:delete_review_user' review.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger ms-2">Delete</button>
+                                </form>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
+                    {% empty %}
+                    <p class="text-center text-muted">No reviews yet.</p>
+                    {% endfor %}
                 </div>
-                {% empty %}
-                <p>No reviews yet.</p>
-                {% endfor %}
-            </div>
 
-            {% if request.session.user_id and not user_review %}
-            <div class="text-end">
-                <a href="#add-review-form" class="btn btn-danger">Write a Review</a>
-            </div>
-            <div class="row mb-4" id="add-review-form">
-                <div class="col-md-8">
-                    <h5 class="fw-bold">Add Your Review</h5>
-                    <form method="post">
-                        {% csrf_token %}
-                        {% if messages %}
-                        <div class="w-100 mb-3">
-                            {% for message in messages %}
-                            <div class="alert alert-danger py-2 px-3 small mb-2">{{ message }}</div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        <div class="mb-2">
-                            <label class="form-label">Rating</label>
-                            <select name="rating" class="form-select" required>
-                                <option value="">Select rating</option>
-                                {% for i in "12345" %}
-                                <option value="{{ i }}">{{ i }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Comment</label>
-                            <textarea name="comment" class="form-control" rows="3" required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Submit Review</button>
-                    </form>
+                {% if request.session.user_id and not user_review %}
+                <div class="row mb-4" id="add-review-form">
+                    <div class="col-md-8">
+                        <h5 class="fw-bold">Add Your Review</h5>
+                        <form method="post" id="add-review-form-el" action="/reviews/create/{{ restaurant.id }}/">
+                            {% csrf_token %}
+                            <div class="w-100 mb-3" id="add-review-messages" style="display:none;"></div>
+                            <div class="mb-2">
+                                <label class="form-label">Rating</label>
+                                <select name="rating" class="form-select" required>
+                                    <option value="">Select rating</option>
+                                    {% for i in "12345" %}
+                                    <option value="{{ i }}">{{ i }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Comment</label>
+                                <textarea name="comment" class="form-control" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Submit Review</button>
+                        </form>
+                    </div>
                 </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
     </div>
 </div>
 
 <script>
-    function switchToReviews() {
-        const reviewsTab = document.getElementById('reviews-tab');
-        const reviewsTabInstance = new bootstrap.Tab(reviewsTab);
-        reviewsTabInstance.show();
+    function renderReviewCard(review, isUserReview) {
+        return `
+    <div class="card mb-3" data-review-id="${review.id}">
+        <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+                <div class="rounded-circle bg-secondary d-inline-block me-3" style="width:40px;height:40px;"></div>
+                <div>
+                    <span class="fw-semibold">${review.user}</span>
+                    <span class="text-muted small ms-2">just now</span>
+                    <div>
+                        ${[1, 2, 3, 4, 5].map(i => i <= review.rating ? '<span class="text-danger">&#9733;</span>' : '<span class="text-secondary">&#9733;</span>').join('')}
+                    </div>
+                </div>
+            </div>
+            <p class="mb-1">${review.comment}</p>
+            <div class="d-flex align-items-center gap-3 mt-2">
+                ${isUserReview ? `<a href="/review/edit/${review.id}/" class="btn btn-sm btn-outline-primary">Edit</a>
+                <form method="post" class="d-inline delete-review-form" data-review-id="${review.id}" action="/reviews/${review.id}/delete/">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="${document.querySelector('[name=csrfmiddlewaretoken]').value}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger ms-2">Delete</button>
+                </form>` : ''}
+            </div>
+        </div>
+    </div>
+    `;
     }
+    function attachReviewFormListeners() {
+        // Delete review
+        document.querySelectorAll('.delete-review-form').forEach(function (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (!confirm('Delete your review?')) return;
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Fetch the updated reviews section from the backend
+                            fetch(window.location.pathname, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                                .then(res => res.text())
+                                .then(html => {
+                                    const parser = new DOMParser();
+                                    const doc = parser.parseFromString(html, 'text/html');
+                                    const newSection = doc.getElementById('reviews-section');
+                                    if (newSection) {
+                                        document.getElementById('reviews-section').innerHTML = newSection.innerHTML;
+                                        attachReviewFormListeners();
+                                    }
+                                });
+                        }
+                    });
+            });
+        });
+        // Add review
+        const addReviewForm = document.getElementById('add-review-form-el');
+        if (addReviewForm) {
+            addReviewForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(addReviewForm);
+                const restaurantId = document.getElementById('reviews-section').dataset.restaurantId;
+                fetch(addReviewForm.action, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        const msgDiv = document.getElementById('add-review-messages');
+                        if (data.success) {
+                            // Add the new review card to the top of the list
+                            let reviewsList = document.querySelector('#reviews-section .mb-4');
+                            if (reviewsList) {
+                                // Remove 'No reviews yet.' message if present
+                                const noReviewsMsg = reviewsList.querySelector('.text-center.text-muted');
+                                if (noReviewsMsg) noReviewsMsg.remove();
+                                reviewsList.insertAdjacentHTML('afterbegin', renderReviewCard(data.review, true));
+                            } else {
+                                // If reviewsList doesn't exist, create it and insert the new review
+                                const reviewsSection = document.getElementById('reviews-section');
+                                const newList = document.createElement('div');
+                                newList.className = 'mb-4';
+                                newList.innerHTML = renderReviewCard(data.review, true);
+                                reviewsSection.insertBefore(newList, reviewsSection.firstChild);
+                            }
+                            // Hide the add review form
+                            document.getElementById('add-review-form').style.display = 'none';
+                            attachReviewFormListeners();
+                        } else if (data.errors) {
+                            // Show errors at the top of the form
+                            const msgDiv = document.getElementById('add-review-messages');
+                            if (msgDiv) {
+                                msgDiv.style.display = '';
+                                msgDiv.innerHTML = data.errors.map(err => `<div class="alert alert-danger py-2 px-3 small mb-2">${err}</div>`).join('');
+                            }
+                        }
+                    })
+                    .catch((err) => {
+                        const msgDiv = document.getElementById('add-review-messages');
+                        if (msgDiv) {
+                            msgDiv.style.display = '';
+                            msgDiv.innerHTML = '<div class="alert alert-danger py-2 px-3 small mb-2">An error occurred. Please try again.</div>';
+                        }
+                    });
+            });
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+        attachReviewFormListeners();
+        function switchToReviews() {
+            const reviewsTab = document.getElementById('reviews-tab');
+            const reviewsTabInstance = new bootstrap.Tab(reviewsTab);
+            reviewsTabInstance.show();
+        }
+    });
 </script>
 {% endblock %}

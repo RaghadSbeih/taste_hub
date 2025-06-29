@@ -22,4 +22,7 @@ urlpatterns = [
     path('restaurant/<int:restaurant_id>/', views.restaurant_detail, name='restaurant_detail'),
     path('review/edit/<int:review_id>/', views.edit_review, name='edit_review'),
     path('review/delete/<int:review_id>/', views.delete_review_user, name='delete_review_user'),
+    path('about/', views.about, name='about'),
+    path('reviews/create/<int:restaurant_id>/', views.create_review, name='create_review'),
+    path('reviews/<int:review_id>/delete/', views.delete_review_api, name='delete_review_api'),
 ]

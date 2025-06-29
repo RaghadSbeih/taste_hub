@@ -8,6 +8,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.core.files.storage import FileSystemStorage
 from django.db.models import Avg
+from django.http import HttpResponse, JsonResponse
 
 
 # Create your views here.
@@ -43,6 +44,8 @@ def index(request):
         'cities': cities,
         'cuisines': cuisines,
     }
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'index.html', context | {'ajax_only': True})
     return render(request, 'index.html', context)
 
 def register(request):
@@ -201,27 +204,10 @@ def restaurant_detail(request, restaurant_id):
     user_review = None
     if user:
         user_review = reviews.filter(user=user).first()
-    if request.method == 'POST' and user:
-        if user_review:
-            messages.error(request, 'You have already reviewed this restaurant.')
-        else:
-            rating = int(request.POST.get('rating', 0))
-            comment = request.POST.get('comment', '').strip()
-            errors = Review.objects.review_validator(request.POST)
-            if errors:
-                for err in errors.values():
-                    messages.error(request, err)
-            else:
-                Review.objects.create(user=user, restaurant=restaurant, rating=rating, comment=comment)
-                messages.success(request, 'Review added!')
-                return redirect('restaurant_reviews:restaurant_detail', restaurant_id=restaurant.id)
-    # Calculate average rating and rating counts
     average_rating = reviews.aggregate(avg=Avg('rating'))['avg'] or 0
     rating_counts = {i: reviews.filter(rating=i).count() for i in range(1, 6)}
     total_reviews = reviews.count()
-    print("average_rating", average_rating)
-    print("rating_counts", rating_counts)
-    print("total_reviews", total_reviews)
+    
     context = {
         'restaurant': restaurant,
         'reviews': reviews,
@@ -257,6 +243,48 @@ def delete_review_user(request, review_id):
     review = get_object_or_404(Review, id=review_id, user=user)
     restaurant_id = review.restaurant.id
     review.delete()
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'success': True})
     messages.success(request, 'Review deleted!')
     return redirect('restaurant_reviews:restaurant_detail', restaurant_id=restaurant_id)
+
+def about(request):
+    return render(request, 'about.html')
+
+def create_review(request, restaurant_id):
+    user = get_logged_in_user(request)
+    if not user:
+        return JsonResponse({'success': False, 'errors': ['Authentication required.']}, status=403)
+    restaurant = get_object_or_404(Restaurant, id=restaurant_id)
+    user_review = Review.objects.filter(restaurant=restaurant, user=user).first()
+    if user_review:
+        return JsonResponse({'success': False, 'errors': ['You have already reviewed this restaurant.']}, status=400)
+    if request.method == 'POST':
+        rating = int(request.POST.get('rating', 0))
+        comment = request.POST.get('comment', '').strip()
+        errors = Review.objects.review_validator(request.POST)
+        if errors:
+            return JsonResponse({'success': False, 'errors': list(errors.values())}, status=400)
+        review = Review.objects.create(user=user, restaurant=restaurant, rating=rating, comment=comment, created_at=timezone.now())
+        return JsonResponse({
+            'success': True,
+            'review': {
+                'id': review.id,
+                'user': f'{user.first_name} {user.last_name}',
+                'rating': review.rating,
+                'comment': review.comment,
+                'created_at': review.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+        })
+    return JsonResponse({'success': False, 'errors': ['Invalid request.']}, status=400)
+
+def delete_review_api(request, review_id):
+    user = get_logged_in_user(request)
+    if not user:
+        return JsonResponse({'success': False, 'errors': ['Authentication required.']}, status=403)
+    review = get_object_or_404(Review, id=review_id, user=user)
+    if request.method == 'POST':
+        review.delete()
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False, 'errors': ['Invalid request.']}, status=400)
 
