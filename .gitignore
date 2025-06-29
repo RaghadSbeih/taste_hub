@@ -1,0 +1,20 @@
+*.pyc
+*~
+__pycache__
+db.sqlite3
+.env
+venv/
+env/
+.mypy_cache
+.pytest_cache
+/media
+/staticfiles
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db" > .gitignore

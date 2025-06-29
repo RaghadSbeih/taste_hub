@@ -1,0 +1,1 @@
+app_name = 'restaurant_reviews' 

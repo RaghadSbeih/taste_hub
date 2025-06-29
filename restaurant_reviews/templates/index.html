@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}TasteHub - Home{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h2 class="fw-bold mb-4">All Restaurants</h2>
+  <form method="get" class="row g-2 mb-4 align-items-end">
+    <div class="col-md-4">
+      <input type="text" name="q" class="form-control" placeholder="Search by name..." value="{{ search_query }}">
+    </div>
+    <div class="col-md-3">
+      <select name="city" class="form-select">
+        <option value="">All Cities</option>
+        {% for city in cities %}
+        <option value="{{ city }}" {% if city == city_filter %} selected {% endif %}>{{ city }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="cuisine_type" class="form-select">
+        <option value="">All Cuisines</option>
+        {% for cuisine in cuisines %}
+        <option value="{{ cuisine }}" {% if cuisine == cuisine_filter %} selected {% endif %}>{{ cuisine }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary w-100">Search</button>
+    </div>
+  </form>
+  <div class="row g-4">
+    {% for restaurant in restaurants %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm">
+        {% if restaurant.image %}
+        <img src="{{ restaurant.image.url }}" class="card-img-top" alt="{{ restaurant.name }}"
+          style="height: 200px; object-fit: cover;">
+        {% endif %}
+        <div class="card-body">
+          <h5 class="card-title">{{ restaurant.name }}</h5>
+          <p class="card-text mb-1"><strong>City:</strong> {{ restaurant.city }}</p>
+          <p class="card-text mb-1"><strong>Cuisine:</strong> {{ restaurant.cuisine_type }}</p>
+          <a href="{% url 'restaurant_reviews:restaurant_detail' restaurant.id %}"
+            class="btn btn-outline-primary mt-2">View Details</a>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+      <p>No restaurants found.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
